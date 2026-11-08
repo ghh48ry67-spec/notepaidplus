@@ -1,0 +1,327 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NeoNote | Smart Notepad</title>
+
+<style>
+*{box-sizing:border-box}
+:root{
+  --bg:#090d19;
+  --panel:#11182a;
+  --panel2:#171f34;
+  --text:#edf1ff;
+  --muted:#8994b0;
+  --accent:#8b78ff;
+  --border:#27314a;
+}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:Inter,Arial,sans-serif;
+  height:100vh;
+  overflow:hidden;
+}
+.app{display:flex;height:100vh}
+.sidebar{
+  width:285px;background:var(--panel);
+  border-right:1px solid var(--border);
+  padding:22px 16px;display:flex;flex-direction:column;
+}
+.brand{
+  font-size:24px;font-weight:800;
+  letter-spacing:-1px;margin-bottom:28px;
+}
+.brand span{color:var(--accent)}
+.new{
+  background:linear-gradient(120deg,#7664ff,#a16bff);
+  color:white;border:0;border-radius:12px;
+  padding:13px;font-size:14px;font-weight:700;
+  cursor:pointer;margin-bottom:18px;
+}
+.search{
+  width:100%;padding:12px;background:var(--panel2);
+  border:1px solid var(--border);border-radius:10px;
+  color:white;outline:none;margin-bottom:18px;
+}
+.section{
+  color:var(--muted);font-size:11px;
+  letter-spacing:1.5px;margin:8px 0 12px;
+}
+.notes{overflow:auto;flex:1}
+.note-item{
+  padding:13px;border-radius:10px;
+  margin-bottom:7px;cursor:pointer;
+  border:1px solid transparent;
+}
+.note-item:hover,.note-item.active{
+  background:var(--panel2);
+  border-color:var(--border);
+}
+.note-item strong{
+  display:block;font-size:14px;
+  overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.note-item small{color:var(--muted);font-size:11px}
+.profile{
+  border-top:1px solid var(--border);
+  padding-top:17px;color:var(--muted);
+  font-size:12px;
+}
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.topbar{
+  height:70px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 28px;
+}
+.status{color:#76dcae;font-size:12px}
+.actions{display:flex;gap:9px}
+.btn{
+  background:var(--panel2);border:1px solid var(--border);
+  color:var(--text);padding:9px 13px;
+  border-radius:9px;cursor:pointer;
+}
+.btn:hover{border-color:var(--accent)}
+.delete{color:#ff8b9b}
+.editor{
+  width:min(850px,90%);margin:55px auto;
+  display:flex;flex-direction:column;flex:1;min-height:0;
+}
+.date{
+  color:var(--accent);font-size:12px;
+  letter-spacing:2px;margin-bottom:18px;
+}
+.title{
+  background:none;border:0;outline:0;
+  color:var(--text);font-size:35px;
+  font-weight:800;margin-bottom:25px;
+  width:100%;
+}
+.title::placeholder{color:#46516c}
+.content{
+  flex:1;min-height:200px;resize:none;
+  background:none;border:0;outline:0;
+  color:#c8d0e7;font-size:17px;
+  line-height:1.9;font-family:inherit;
+}
+.content::placeholder{color:#596681}
+.footer{
+  border-top:1px solid var(--border);
+  padding:17px 28px;color:var(--muted);
+  font-size:12px;display:flex;
+  justify-content:space-between;
+}
+.empty{
+  color:var(--muted);text-align:center;
+  margin-top:60px;font-size:14px;
+}
+@media(max-width:650px){
+  .sidebar{width:75px;padding:15px 8px}
+  .brand{font-size:17px;text-align:center}
+  .brand span{display:none}
+  .new{font-size:0;padding:13px 5px}
+  .new:after{content:"+";font-size:22px}
+  .search{font-size:0;padding:10px 3px}
+  .search::placeholder{color:transparent}
+  .section,.note-item small,.note-item strong,.profile{display:none}
+  .note-item{text-align:center;padding:14px 5px}
+  .note-item:after{content:"📝"}
+  .topbar{padding:0 12px}
+  .editor{margin:35px auto;width:90%}
+  .title{font-size:27px}
+  .content{font-size:15px}
+  .footer{padding:13px;font-size:10px}
+  .btn{padding:8px}
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+
+<aside class="sidebar">
+  <div class="brand">Neo<span>Note.</span></div>
+  <button class="new" onclick="createNote()">＋ New Note</button>
+  <input class="search" id="search"
+    placeholder="⌕ Search notes..." oninput="renderNotes()">
+
+  <div class="section">YOUR WORKSPACE</div>
+  <div class="notes" id="notesList"></div>
+
+  <div class="profile">✦ Your personal writing space</div>
+</aside>
+
+<main class="main">
+  <header class="topbar">
+    <span class="status" id="status">● All changes saved</span>
+    <div class="actions">
+      <button class="btn" onclick="downloadNote()">↓ Export</button>
+      <button class="btn delete" onclick="deleteNote()">Delete</button>
+    </div>
+  </header>
+
+  <section class="editor" id="editor">
+    <div class="date" id="date"></div>
+    <input class="title" id="title"
+      placeholder="Untitled Note..." oninput="changed()">
+    <textarea class="content" id="content"
+      placeholder="Start writing something amazing..."
+      oninput="changed()"></textarea>
+  </section>
+
+  <footer class="footer">
+    <span id="wordCount">0 words</span>
+    <span id="charCount">0 characters</span>
+  </footer>
+</main>
+</div>
+
+<script>
+const KEY="neonote-data-v1";
+let notes=[];
+let active=null;
+let timer;
+
+const title=document.getElementById("title");
+const content=document.getElementById("content");
+
+function persist(){
+  localStorage.setItem(KEY,JSON.stringify(notes));
+  document.getElementById("status").textContent="● All changes saved";
+  renderNotes();
+}
+
+function createNote(){
+  const note={
+    id:Date.now().toString()+Math.random().toString(16).slice(2),
+    title:"",content:"",updated:Date.now()
+  };
+  notes.unshift(note);
+  active=note.id;
+  persist();
+  showNote();
+  title.focus();
+}
+
+function current(){
+  return notes.find(n=>n.id===active);
+}
+
+function changed(){
+  const n=current();
+  if(!n)return;
+  n.title=title.value;
+  n.content=content.value;
+  n.updated=Date.now();
+
+  document.getElementById("status").textContent="● Saving...";
+  updateCount();
+
+  clearTimeout(timer);
+  timer=setTimeout(persist,300);
+  renderNotes();
+}
+
+function updateCount(){
+  const text=content.value.trim();
+  const words=text?text.split(/\s+/).length:0;
+  document.getElementById("wordCount").textContent=words+" words";
+  document.getElementById("charCount").textContent=content.value.length+" characters";
+}
+
+function showNote(){
+  const n=current();
+  if(!n)return;
+  title.value=n.title;
+  content.value=n.content;
+  updateCount();
+  document.getElementById("date").textContent=
+    new Date(n.updated).toLocaleDateString(undefined,{
+      weekday:"long",month:"long",day:"numeric",year:"numeric"
+    }).toUpperCase();
+  renderNotes();
+}
+
+function selectNote(id){
+  clearTimeout(timer);
+  persist();
+  active=id;
+  showNote();
+}
+
+function renderNotes(){
+  const list=document.getElementById("notesList");
+  const q=document.getElementById("search").value.toLowerCase();
+  list.innerHTML="";
+  notes.filter(n=>(n.title+" "+n.content).toLowerCase().includes(q))
+  .forEach(n=>{
+    const item=document.createElement("div");
+    item.className="note-item"+(n.id===active?" active":"");
+    const name=document.createElement("strong");
+    name.textContent=n.title||"Untitled Note";
+    const small=document.createElement("small");
+    small.textContent=n.content.slice(0,45)||"No content yet";
+    item.append(name,small);
+    item.onclick=()=>selectNote(n.id);
+    list.appendChild(item);
+  });
+}
+
+function deleteNote(){
+  if(!current())return;
+  if(!confirm("Delete this note permanently?"))return;
+  notes=notes.filter(n=>n.id!==active);
+  active=notes[0]?.id||null;
+  persist();
+  if(active)showNote();
+  else createNote();
+}
+
+function downloadNote(){
+  const n=current();
+  if(!n)return;
+  const blob=new Blob([
+    (n.title||"Untitled Note")+"\n\n"+n.content
+  ],{type:"text/plain;charset=utf-8"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;
+  a.download=(n.title||"note").replace(/[\\/:*?"<>|]/g,"_")+".txt";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function load(){
+  try{
+    const saved=JSON.parse(localStorage.getItem(KEY)||"[]");
+    if(Array.isArray(saved))notes=saved;
+  }catch(e){notes=[]}
+  if(notes.length){
+    active=notes[0].id;
+    showNote();
+  }else createNote();
+
+  document.getElementById("date").textContent=
+    new Date().toLocaleDateString(undefined,{
+      weekday:"long",month:"long",day:"numeric",year:"numeric"
+    }).toUpperCase();
+}
+
+window.addEventListener("beforeunload",()=>{
+  clearTimeout(timer);
+  const n=current();
+  if(n){
+    n.title=title.value;
+    n.content=content.value;
+    localStorage.setItem(KEY,JSON.stringify(notes));
+  }
+});
+
+load();
+</script>
+</body>
+</html>
